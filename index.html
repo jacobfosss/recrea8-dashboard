@@ -87,7 +87,7 @@ body { padding: 24px 16px 48px; font-family: var(--font-anthropic-sans); }
 
   <section class="kpis" id="headline">
     <div class="kpi"><span class="lbl">Doors on shelf</span><span class="val dash-skeleton" data-source="kpis" data-field="Value" data-where="Headline numbers=Doors on shelf">—</span><span class="sub">Stocked or reordering</span></div>
-    <div class="kpi"><span class="lbl">Accepted, not yet selling</span><span class="val dash-skeleton" data-source="kpis" data-field="Value" data-where="Headline numbers=Accepted / authorized – not yet selling">—</span><span class="sub">Mostly Inserra and Village stores authorized but not yet ordering</span></div>
+    <div class="kpi"><span class="lbl">Stores accepted</span><span class="val dash-skeleton" data-source="kpis" data-field="Value" data-where="Headline numbers=Stores on shelf or authorized">—</span><span class="sub" id="accepted-sub">On shelf + accepted, not yet selling</span></div>
     <div class="kpi"><span class="lbl">Pints shipped to stores</span><span class="val dash-skeleton" data-source="kpis" data-field="Value" data-where="Headline numbers=Pints shipped to stores (sell-in)">—</span><span class="sub">Since first order, April 2026</span></div>
     <div class="kpi"><span class="lbl">Invoiced to date</span><span class="val dash-skeleton" data-source="kpis" data-field="Value" data-where="Headline numbers=Net $ invoiced to date">—</span><span class="sub">Direct + Artisan Exchange + McMahon's opening pallet</span></div>
     <div class="kpi"><span class="lbl">Intro discounts &amp; free fill</span><span class="val dash-skeleton" data-source="kpis" data-field="Value" data-where="Headline numbers=Intro discounts given (first orders)">—</span><span class="sub">Invested to win McCaffrey's (50% off first case) and Ravitz (1 free case per flavor)</span></div>
@@ -474,6 +474,11 @@ dash.onData(() => {
     } else if (k.status === 'error') { el.classList.remove('dash-skeleton'); el.textContent = '—'; }
     else el.textContent = '—';
   });
+  if (k.status === 'ok') {
+    const g = (n) => (k.data.find((x) => x['Headline numbers'] === n) || {}).Value;
+    const on = g('Doors on shelf'), pend = g('Accepted / authorized – not yet selling'), sub = document.getElementById('accepted-sub');
+    if (sub && on != null && pend != null) sub.textContent = `Includes the ${R8.int(on)} on shelf + ${R8.int(pend)} accepted, not yet selling`;
+  }
   const a = dash.data('accounts');
   const p = document.getElementById('takeaway');
   if (a.status === 'ok' && k.status === 'ok') {
