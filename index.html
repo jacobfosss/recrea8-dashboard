@@ -89,6 +89,7 @@ body { padding: 24px 16px 48px; font-family: var(--font-anthropic-sans); }
     <div class="kpi"><span class="lbl">Doors on shelf</span><span class="val dash-skeleton" data-source="kpis" data-field="Value" data-where="Headline numbers=Doors on shelf">—</span><span class="sub">Stocked or reordering</span></div>
     <div class="kpi"><span class="lbl">Accepted, not yet selling</span><span class="val dash-skeleton" data-source="kpis" data-field="Value" data-where="Headline numbers=Accepted / authorized – not yet selling">—</span><span class="sub">Incl. 22 Inserra stores authorized, not yet ordering</span></div>
     <div class="kpi"><span class="lbl">Pints shipped to stores</span><span class="val dash-skeleton" data-source="kpis" data-field="Value" data-where="Headline numbers=Pints shipped to stores (sell-in)">—</span><span class="sub">Since first order, April 2026</span></div>
+    <div class="kpi"><span class="lbl">Invoiced to date</span><span class="val dash-skeleton" data-source="kpis" data-field="Value" data-where="Headline numbers=Net $ invoiced to date">—</span><span class="sub">Direct + Artisan Exchange + McMahon's opening pallet</span></div>
     <div class="kpi"><span class="lbl">Pints scanned at register</span><span class="val dash-skeleton" data-source="kpis" data-field="Value" data-where="Headline numbers=Units scanned at register (sell-through)">—</span><span class="sub">13 stores that send scan data</span></div>
     <div class="kpi"><span class="lbl">Shopper spend at $8.99</span><span class="val dash-skeleton" data-source="kpis" data-field="Value" data-where="Headline numbers=Shopper spend at $8.99">—</span><span class="sub">Scanned pints × $8.99 (prices run $6.99–$9.99)</span></div>
   </section>
@@ -110,6 +111,7 @@ body { padding: 24px 16px 48px; font-family: var(--font-anthropic-sans); }
             <th data-field="By account">Account</th>
             <th class="n" data-field="Doors on Shelf">Doors</th>
             <th class="n" data-field="Pints Shipped">Pints shipped</th>
+            <th class="n" data-field="Net $ Invoiced">Invoiced</th>
             <th class="n" data-field="Units Scanned">Scanned</th>
             <th class="n" data-field="Weeks of Scan Data">Weeks</th>
             <th class="n" data-field="U/S/S/W">U/S/S/W</th>
@@ -519,7 +521,7 @@ dash.onData(() => {
   if (d.status !== 'ok') { tb.replaceChildren(); return; }
   tb.replaceChildren(...d.data.map((r) => {
     const tr = document.createElement('tr');
-    const cells = [[r['By account'], ''], [R8.int(r['Doors on Shelf'] ?? 0), 'n'], [R8.int(r['Pints Shipped'] ?? 0), 'n'], [R8.int(r['Units Scanned'] ?? 0), 'n'], [r['Weeks of Scan Data'] == null ? '–' : d3.format('.1f')(r['Weeks of Scan Data']), 'n'], [r['U/S/S/W'] == null ? '–' : R8.dec(r['U/S/S/W']), 'n']];
+    const cells = [[r['By account'], ''], [R8.int(r['Doors on Shelf'] ?? 0), 'n'], [R8.int(r['Pints Shipped'] ?? 0), 'n'], [R8.money(r['Net $ Invoiced'] ?? 0), 'n'], [R8.int(r['Units Scanned'] ?? 0), 'n'], [r['Weeks of Scan Data'] == null ? '–' : d3.format('.1f')(r['Weeks of Scan Data']), 'n'], [r['U/S/S/W'] == null ? '–' : R8.dec(r['U/S/S/W']), 'n']];
     for (const [t, c] of cells) { const td = document.createElement('td'); td.textContent = t; if (c) td.className = c; tr.append(td); }
     return tr;
   }));
