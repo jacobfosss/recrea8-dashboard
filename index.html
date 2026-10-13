@@ -123,6 +123,13 @@ body { padding: 24px 16px 48px; font-family: var(--font-anthropic-sans); }
     </div>
   </div>
 
+  <div class="card" id="chains-card">
+    <h3>Room to grow inside chains we already sell to</h3>
+    <p class="note" id="chains-sum">Stores on shelf, authorized or ordered, and still to win, by chain.</p>
+    <div class="legend" id="chains-legend"></div>
+    <div class="chart" id="chains" data-source="chains" style="min-height:120px"></div>
+  </div>
+
   <div class="grid">
     <div class="card" id="sku-heat-card">
       <h3>Velocity by store and flavor</h3>
@@ -212,7 +219,7 @@ body { padding: 24px 16px 48px; font-family: var(--font-anthropic-sans); }
 const CONFIG = {
   sheetId: '1mqO4Tv3Mqo6kVkB3CG0vEO4LwENa5bpPKll4CRX03mc',
   pubId: '2PACX-1vT8mCqIjHUX0PljbY52o0Cy2zgRBr0nvYdYGt1RF6rEtaDPn0r7YjhrqTuWdOjUG9LkvDPD6XQ321IK',
-  tabs: { kpis: 101, accounts: 102, stores: 103, store_sku: 104, sales_log: 105, orders: 106, events: 107 },
+  tabs: { kpis: 101, accounts: 102, stores: 103, store_sku: 104, sales_log: 105, orders: 106, events: 107, chains: 108 },
   refreshMinutes: 5,
 };
 const csvUrls = (gid) => {
@@ -253,7 +260,7 @@ const toRows = (values) => {
 };
 const dash = (() => {
   const calcs = {}, state = {}, subs = [];
-  const colors = ['#3b6fb6', '#d9822b', '#4f9a6a', '#8b6cc1'];
+  const colors = ['#3b6fb6', '#d9822b', '#4f9a6a', '#8b6cc1', '#c0587e'];
   const fetchTab = async (gid) => {
     let last;
     for (const url of csvUrls(gid)) {
@@ -358,7 +365,7 @@ dash.calc('monthly_sellin', {
   description: 'Invoiced pints summed by month and account.',
   inputs: ['orders'],
   fn: (orders) => {
-    const accts = ["McCaffrey's", 'ShopRite – Ravitz', 'ShopRite – Inserra', 'Independent'];
+    const accts = ["McCaffrey's", 'ShopRite – Ravitz', 'ShopRite – Inserra', 'Village (Fairway / Gourmet Garage)', 'Independent'];
     const by = new Map();
     for (const r of orders) {
       if (!r.Date || typeof r.Pints !== 'number') continue;
@@ -389,7 +396,7 @@ dash.calc('timeline', {
 
 const R8 = {
   acctColor: (acct) => {
-    const i = { "McCaffrey's": 0, 'ShopRite – Ravitz': 1, 'ShopRite – Inserra': 2, 'Independent': 3 }[acct];
+    const i = { "McCaffrey's": 0, 'ShopRite – Ravitz': 1, 'ShopRite – Inserra': 2, 'Independent': 3, 'Village (Fairway / Gourmet Garage)': 4 }[acct];
     return i === undefined ? 'var(--cds-chart-muted)' : dash.colors[i];
   },
   acctOf: (id) => (id.startsWith('MC-') ? "McCaffrey's" : id.startsWith('WF-') || id.startsWith('RV-') ? 'ShopRite – Ravitz' : id.startsWith('IN-') ? 'ShopRite – Inserra' : 'Independent'),
@@ -589,10 +596,40 @@ dash.onData(() => {
   const d = dash.data('monthly_sellin');
   if (d.status === 'error') return R8.fail(box);
   if (d.status !== 'ok') { box.querySelectorAll('svg').forEach((n) => n.remove()); return; }
-  const keys = ["McCaffrey's", 'ShopRite – Ravitz', 'ShopRite – Inserra', 'Independent'];
+  const keys = ["McCaffrey's", 'ShopRite – Ravitz', 'ShopRite – Inserra', 'Village (Fairway / Gourmet Garage)', 'Independent'];
   const colors = keys.map((k) => R8.acctColor(k));
   R8.legend(document.getElementById('sellin-legend'), keys.map((k, i) => [colors[i], k]));
   R8.stacked(box, d.data, 'Month', keys, colors, (mth, long) => (long ? d3.utcFormat('%B %Y')(new Date(mth + '-01T00:00:00Z')) : R8.month(mth)));
+});
+
+
+// Chain footprint
+dash.onData(() => {
+  const box = document.getElementById('chains');
+  const d = dash.data('chains');
+  if (d.status === 'error') return R8.fail(box);
+  box.querySelectorAll('svg').forEach((n) => n.remove());
+  if (d.status !== 'ok') return;
+  const rows = d.data.filter((r) => r['Chain footprint'] && r['Chain footprint'] !== 'Total' && r['Total Stores in Chain']);
+  const tot = d.data.find((r) => r['Chain footprint'] === 'Total');
+  if (tot) document.getElementById('chains-sum').textContent = `${R8.int(tot['On Shelf'])} of ${R8.int(tot['Total Stores in Chain'])} stores in these chains carry Recrea8 today, and ${R8.int(tot['Authorized / Ordered'])} more are authorized or have ordered. The rest are stores we can win without opening a new account.`;
+  const accent = dash.colors[0];
+  R8.legend(document.getElementById('chains-legend'), [[accent, 'On shelf'], [`color-mix(in srgb, ${accent} 35%, transparent)`, 'Authorized or ordered'], ['var(--cds-chart-grid)', 'Not yet carrying']]);
+  const short = (n) => n.replace('ShopRite – ', 'ShopRite ').replace(' (Fairway / Gourmet Garage)', (box.clientWidth || 600) < 520 ? '' : ' (Fairway, GG)').replace(' Fresh Markets', '');
+  const W = box.clientWidth || 600, row = 34, H = rows.length * row + 6;
+  const lw = Math.min(190, W * 0.36), rw = 64;
+  const svg = d3.select(box).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).style('display', 'block');
+  const x = d3.scaleLinear([0, d3.max(rows, (r) => r['Total Stores in Chain'])], [lw, W - rw]);
+  const tip = R8.tip(box);
+  rows.forEach((r, i) => {
+    const y = 4 + i * row, on = r['On Shelf'] || 0, au = r['Authorized / Ordered'] || 0, tt = r['Total Stores in Chain'];
+    const g = svg.append('g').on('mousemove', (ev) => tip.show(ev, r['Chain footprint'], [[accent, 'On shelf', R8.int(on)], [null, 'Authorized or ordered', R8.int(au)], [null, 'Not yet carrying', R8.int(Math.max(0, tt - on - au))], [null, 'Total stores', R8.int(tt)]])).on('mouseleave', tip.hide);
+    g.append('text').attr('x', lw - 10).attr('y', y + 11).attr('dy', '0.35em').attr('text-anchor', 'end').attr('fill', 'var(--color-fg)').style('font-size', 'var(--cds-font-size-caption)').text(short(r['Chain footprint']));
+    g.append('rect').attr('x', x(0)).attr('y', y).attr('height', 22).attr('rx', 4).attr('width', Math.max(1, x(tt) - x(0))).attr('fill', 'var(--cds-chart-grid)');
+    if (au) g.append('rect').attr('x', x(on)).attr('y', y).attr('height', 22).attr('width', Math.max(0, x(on + au) - x(on))).attr('fill', accent).attr('fill-opacity', 0.35);
+    if (on) g.append('rect').attr('x', x(0)).attr('y', y).attr('height', 22).attr('rx', 4).attr('width', Math.max(1, x(on) - x(0))).attr('fill', accent);
+    g.append('text').attr('x', x(tt) + 8).attr('y', y + 11).attr('dy', '0.35em').attr('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)').style('font-variant-numeric', 'tabular-nums').text(`${on} of ${tt}`);
+  });
 });
 
 // Store table with search + sort
