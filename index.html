@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recrea8 Retail Dashboard</title>
+<meta name="description" content="Live store count, sell-in, sell-through and velocity for Recrea8 protein ice cream.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%233b6fb6'/%3E%3Ctext x='16' y='22' font-size='16' text-anchor='middle' fill='white' font-family='Arial'%3ER8%3C/text%3E%3C/svg%3E">
+<style>
+:root {
+  color-scheme: light dark;
+  --font-anthropic-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-anthropic-serif: Georgia, "Times New Roman", serif;
+  --color-bg: #f7f6f2; --color-panel: #ffffff; --color-fg: #1f1e1c; --color-fg-muted: #6b6862;
+  --color-border-line: #e4e1da; --color-ok: #2f7d4f; --color-warn: #b5651d; --color-bad: #c0392b;
+  --cds-chart-grid: #ece9e3; --cds-chart-axis: #d6d2ca; --cds-chart-muted: #b9b5ad; --cds-chart-reference: #8d8981;
+  --cds-surface-popover: #ffffff; --cds-border: #e4e1da; --cds-shadow-popover: 0 6px 20px rgba(0,0,0,.12); --cds-text-secondary: #6b6862;
+  --cds-pad-xs: 4px; --cds-pad-sm: 8px; --cds-pad-md: 12px; --cds-pad-lg: 16px;
+  --cds-gap-xs: 4px; --cds-gap-sm: 8px; --cds-gap-md: 14px; --cds-gap-lg: 22px; --cds-radius: 10px;
+  --cds-font-size-caption: 12.5px; --cds-font-size-body: 15px; --cds-font-size-heading: 16px; --cds-font-size-title: 28px; --cds-font-weight-medium: 600;
+  --cds-dur-slow: .3s;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg: #191817; --color-panel: #22211f; --color-fg: #ecebe8; --color-fg-muted: #a19e97; --color-border-line: #37352f;
+    --color-ok: #6cc08b; --color-warn: #e3a062; --color-bad: #ee7b6e;
+    --cds-chart-grid: #2f2d29; --cds-chart-axis: #45423c; --cds-chart-muted: #5d5a53; --cds-surface-popover: #2a2926; --cds-border: #3a3832; --cds-text-secondary: #a19e97;
+  }
+}
+html, body { margin: 0; background: var(--color-bg); color: var(--color-fg); }
+body { padding: 24px 16px 48px; font-family: var(--font-anthropic-sans); }
+.dash-skeleton { color: var(--color-fg-muted); }
+.r8 .meta { margin: 6px 0 0; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.r8 .meta button { font: inherit; color: var(--color-fg); background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: 999px; padding: 2px 10px; cursor: pointer; }
+.r8 .meta button:disabled { opacity: .5; cursor: default; }
+.r8 footer { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+@media (max-width: 520px) { body { padding: 16px 16px 40px; } :root { --cds-font-size-title: 24px; } }
+</style>
+<style>
+#dash-root { --dash-gutter: var(--cds-pad-lg); }
+.r8 { font-family: var(--font-anthropic-sans); color: var(--color-fg); max-width: 1280px; margin-inline: auto; display: grid; gap: var(--cds-gap-lg); }
+.r8 h1 { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); margin: 0; }
+.r8 .take { color: var(--color-fg-muted); font-size: var(--cds-font-size-body); margin: var(--cds-gap-xs) 0 0; max-width: 70ch; line-height: 1.5; }
+.r8 .take b { font-weight: 600; color: var(--color-fg); }
+.r8 h2 { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); margin: var(--cds-gap-md) 0 0; }
+.r8 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 10.5rem), 1fr)); gap: var(--cds-gap-md); }
+.r8 .kpi { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-md) var(--cds-pad-lg); display: grid; gap: var(--cds-gap-xs); align-content: start; }
+.r8 .kpi .lbl { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.r8 .kpi .val { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); font-variant-numeric: tabular-nums; min-height: 1.3em; }
+.r8 .kpi .sub { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.r8 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr)); gap: var(--cds-gap-md); }
+.r8 .card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); min-width: 0; }
+.r8 .card h3 { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); margin: 0; }
+.r8 .card .note { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); margin: var(--cds-gap-xs) 0 var(--cds-gap-md); line-height: 1.45; }
+.r8 .chart { position: relative; min-height: 220px; }
+.r8 .tip { position: absolute; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-xs) var(--cds-pad-sm); font-size: var(--cds-font-size-caption); white-space: nowrap; z-index: 5; display: none; }
+.r8 .tip .t { color: var(--cds-text-secondary); margin-bottom: 2px; }
+.r8 .tip .sw { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
+.r8 .legend { display: flex; flex-wrap: wrap; gap: var(--cds-gap-sm) var(--cds-gap-md); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); margin-bottom: var(--cds-gap-sm); }
+.r8 .legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.r8 .tbl { max-height: 520px; overflow: auto; }
+.r8 table { border-collapse: collapse; width: 100%; font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; }
+.r8 th { text-align: left; font-weight: var(--cds-font-weight-medium); color: var(--color-fg-muted); padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); position: sticky; top: 0; background: var(--color-panel); white-space: nowrap; }
+.r8 th button { all: unset; cursor: pointer; }
+.r8 td { padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); vertical-align: top; }
+.r8 td.n, .r8 th.n { text-align: right; }
+.r8 tr.tot td { font-weight: 600; }
+.r8 .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: var(--cds-font-size-caption); background: color-mix(in srgb, var(--color-fg) 8%, transparent); white-space: nowrap; }
+.r8 .pill.ok { color: var(--color-ok); } .r8 .pill.warn { color: var(--color-warn); } .r8 .pill.bad { color: var(--color-bad); }
+.r8 .heat td.h { text-align: right; border-radius: 4px; }
+.r8 .search { width: 100%; max-width: 18rem; padding: var(--cds-pad-xs) var(--cds-pad-sm); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); background: var(--color-bg); color: var(--color-fg); font: inherit; font-size: var(--cds-font-size-caption); margin-bottom: var(--cds-gap-sm); }
+.r8 .tl { display: grid; gap: 0; }
+.r8 .fail { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: inherit; color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+.r8 .fail::before { content: ""; width: .375rem; height: .375rem; border-radius: 50%; background: var(--color-bad); }
+.r8 [data-dash-source-state=empty] { color: transparent; }
+.r8 [data-dash-source-state=refreshing] { opacity: .5; transition: opacity var(--cds-dur-slow); }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+</head>
+<body>
+<div class="r8">
+  <header id="top">
+    <h1>Recrea8 retail dashboard</h1>
+    <p class="take" id="takeaway"><span class="dash-skeleton">Loading the latest numbers…</span></p>
+    <p class="meta"><span id="updated">Loading…</span> · <button id="refresh" type="button">Refresh</button></p>
+  </header>
+
+  <section class="kpis" id="headline">
+    <div class="kpi"><span class="lbl">Doors on shelf</span><span class="val dash-skeleton" data-source="kpis" data-field="Value" data-where="Headline numbers=Doors on shelf">—</span><span class="sub">Stocked or reordering</span></div>
+    <div class="kpi"><span class="lbl">Accepted, not yet selling</span><span class="val dash-skeleton" data-source="kpis" data-field="Value" data-where="Headline numbers=Accepted / authorized – not yet selling">—</span><span class="sub">Incl. 22 Inserra stores authorized, not yet ordering</span></div>
+    <div class="kpi"><span class="lbl">Pints shipped to stores</span><span class="val dash-skeleton" data-source="kpis" data-field="Value" data-where="Headline numbers=Pints shipped to stores (sell-in)">—</span><span class="sub">Since first order, April 2026</span></div>
+    <div class="kpi"><span class="lbl">Pints scanned at register</span><span class="val dash-skeleton" data-source="kpis" data-field="Value" data-where="Headline numbers=Units scanned at register (sell-through)">—</span><span class="sub">13 stores that send scan data</span></div>
+    <div class="kpi"><span class="lbl">Shopper spend at $8.99</span><span class="val dash-skeleton" data-source="kpis" data-field="Value" data-where="Headline numbers=Shopper spend at $8.99">—</span><span class="sub">Scanned pints × $8.99 (prices run $6.99–$9.99)</span></div>
+  </section>
+
+  <h2 id="velocity">Velocity</h2>
+  <div class="grid">
+    <div class="card" id="store-velocity-card">
+      <h3>Units per store per SKU per week, by store</h3>
+      <p class="note">Every store that sends scan data, highest first.</p>
+      <div class="legend" id="vel-legend"></div>
+      <div class="chart" id="store-velocity" data-source="store_velocity"></div>
+    </div>
+    <div class="card" id="account-card">
+      <h3>By account</h3>
+      <p class="note">U/S/S/W = units per store per SKU per week, over each account's scan window. Hoboken's is demo-driven (17 of 18 pints sold at one demo).</p>
+      <div class="tbl">
+        <table id="account-table" data-source="accounts" data-row-key="By account">
+          <thead><tr>
+            <th data-field="By account">Account</th>
+            <th class="n" data-field="Doors on Shelf">Doors</th>
+            <th class="n" data-field="Pints Shipped">Pints shipped</th>
+            <th class="n" data-field="Units Scanned">Scanned</th>
+            <th class="n" data-field="Weeks of Scan Data">Weeks</th>
+            <th class="n" data-field="U/S/S/W">U/S/S/W</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card" id="sku-heat-card">
+      <h3>Velocity by store and flavor</h3>
+      <p class="note">U/S/S/W for each SKU in each store with scan data. Darker = faster.</p>
+      <div class="tbl">
+        <table class="heat" id="sku-heat" data-source="sku_pivot" data-row-key="Store ID">
+          <thead><tr>
+            <th data-field="Store ID">ID</th>
+            <th data-field="Store">Store</th>
+            <th class="n" data-field="Honey Vanilla">Honey Vanilla</th>
+            <th class="n" data-field="Mint Cacao">Mint Cacao</th>
+            <th class="n" data-field="Cacao">Cacao</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card" id="sku-mix-card">
+      <h3>Flavor mix</h3>
+      <p class="note">Share of all pints scanned across McCaffrey's, Ravitz and Hoboken.</p>
+      <div class="chart" id="sku-mix" data-source="sku_mix" style="min-height:140px"></div>
+    </div>
+  </div>
+
+  <h2 id="trend">Over time</h2>
+  <div class="grid">
+    <div class="card" id="weekly-card">
+      <h3>Ravitz ShopRites — pints scanned per week</h3>
+      <p class="note">All 5 stores, weeks starting Sunday (Wakefern report). The only account with weekly scan data so far.</p>
+      <div class="legend" id="weekly-legend"></div>
+      <div class="chart" id="weekly" data-source="ravitz_weekly"></div>
+    </div>
+    <div class="card" id="sellin-card">
+      <h3>Pints shipped to stores per month</h3>
+      <p class="note">Pints delivered to stores, from invoices and distributor reports.</p>
+      <div class="legend" id="sellin-legend"></div>
+      <div class="chart" id="sellin" data-source="monthly_sellin"></div>
+    </div>
+  </div>
+
+  <h2 id="stores-h">Stores</h2>
+  <div class="card" id="stores-card">
+    <h3>Every store</h3>
+    <p class="note">Status, dates, sell-in, sell-through and velocity for all accounts. Click a header to sort.</p>
+    <input class="search" id="store-search" type="search" placeholder="Search stores, status, route…" aria-label="Search stores">
+    <div class="tbl">
+      <table id="stores-table" data-source="stores" data-row-key="Store ID">
+        <thead><tr>
+          <th data-field="Store ID"><button data-k="Store ID">ID</button></th>
+          <th data-field="Store"><button data-k="Store">Store</button></th>
+          <th data-field="Status"><button data-k="Status">Status</button></th>
+          <th data-field="Route"><button data-k="Route">Route</button></th>
+          <th data-field="Accepted"><button data-k="Accepted">Accepted</button></th>
+          <th data-field="First Delivery"><button data-k="First Delivery">On shelf</button></th>
+          <th class="n" data-field="Pints Shipped (sell-in)"><button data-k="Pints Shipped (sell-in)">Shipped</button></th>
+          <th class="n" data-field="Units Scanned (sell-through)"><button data-k="Units Scanned (sell-through)">Scanned</button></th>
+          <th class="n" data-field="U/S/S/W"><button data-k="U/S/S/W">U/S/S/W</button></th>
+          <th data-field="Last Order"><button data-k="Last Order">Last order</button></th>
+          <th class="n" data-field="Days Since Order"><button data-k="Days Since Order">Days since</button></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" id="timeline-card">
+    <h3>Timeline</h3>
+    <p class="note">Acceptances, first deliveries, demos and promos, newest first.</p>
+    <div class="tbl">
+      <table id="timeline" data-source="timeline" data-row-key="key">
+        <thead><tr>
+          <th data-field="Date">Date</th>
+          <th data-field="Event">Event</th>
+          <th data-field="Store">Store</th>
+          <th data-field="Detail">Detail</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+  <footer>Recrea8 protein ice cream · Honey Vanilla, Mint Cacao, Cacao · U/S/S/W = units sold per store, per SKU, per week.</footer>
+</div>
+
+<script>
+
+// ---------- Data: published CSV tabs of the Recrea8 tracker ----------
+const CONFIG = {
+  sheetId: '1mqO4Tv3Mqo6kVkB3CG0vEO4LwENa5bpPKll4CRX03mc',
+  pubId: '',            // the 2PACX-… id from File → Share → Publish to web (optional)
+  tabs: { kpis: 101, accounts: 102, stores: 103, store_sku: 104, sales_log: 105, orders: 106, events: 107 },
+  refreshMinutes: 5,
+};
+const csvUrls = (gid) => {
+  const q = `pub?gid=${gid}&single=true&output=csv&t=${Date.now()}`;
+  const u = [];
+  if (CONFIG.pubId) u.push(`https://docs.google.com/spreadsheets/d/e/${CONFIG.pubId}/${q}`);
+  u.push(`https://docs.google.com/spreadsheets/d/${CONFIG.sheetId}/${q}`);
+  return u;
+};
+const parseCsv = (text) => {
+  const rows = []; let row = [], f = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
+    else if (c === '"') q = true;
+    else if (c === ',') { row.push(f); f = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(f); rows.push(row); row = []; f = ''; }
+    else f += c;
+  }
+  if (f !== '' || row.length) { row.push(f); rows.push(row); }
+  return rows;
+};
+const toRows = (values) => {
+  const [head, ...body] = values;
+  const keepText = new Set(['Store ID', 'Zip', 'Phone', 'UPC', 'Invoice #', 'PO / Order #', 'Store # / Wakefern #', 'key', 'Month']);
+  const months = { Jan: 1, Feb: 2, Mar: 3, Apr: 4, May: 5, Jun: 6, Jul: 7, Aug: 8, Sep: 9, Oct: 10, Nov: 11, Dec: 12 };
+  const cell = (col, v) => {
+    if (v === undefined || v === null || v === '') return null;
+    if (keepText.has(col)) return String(v);
+    const s = String(v).trim();
+    const d = s.match(/^([A-Z][a-z]{2}) (\d{1,2}), (\d{4})$/);
+    if (d && months[d[1]]) return `${d[3]}-${String(months[d[1]]).padStart(2, '0')}-${d[2].padStart(2, '0')}`;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    if (/^-?\$?-?[\d,]*\.?\d+%?$/.test(s)) { const n = Number(s.replace(/[$,%]/g, '')); return s.endsWith('%') ? n / 100 : n; }
+    return s;
+  };
+  return body.filter((r) => r.some((c) => c !== '' && c != null)).map((r) => Object.fromEntries(head.map((h, i) => [h, cell(h, r[i])])));
+};
+const dash = (() => {
+  const calcs = {}, state = {}, subs = [];
+  const colors = ['#3b6fb6', '#d9822b', '#4f9a6a', '#8b6cc1'];
+  const fetchTab = async (gid) => {
+    let last;
+    for (const url of csvUrls(gid)) {
+      try {
+        const r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const t = await r.text();
+        if (/^\s*</.test(t)) throw new Error('Not published as CSV yet');
+        return t;
+      } catch (e) { last = e; }
+    }
+    throw last;
+  };
+  const computeCalcs = () => {
+    for (const [id, c] of Object.entries(calcs)) {
+      const ins = c.inputs.map((i) => state[i]);
+      if (ins.some((x) => !x || x.status === 'error')) { state[id] = { status: 'error' }; continue; }
+      try { state[id] = { status: 'ok', data: c.fn(...ins.map((x) => x.data)) }; } catch (e) { console.error(id, e); state[id] = { status: 'error' }; }
+    }
+  };
+  const emit = () => subs.forEach((cb) => { try { cb(); } catch (e) { console.error(e); } });
+  const load = async () => {
+    const btn = document.getElementById('refresh'); if (btn) btn.disabled = true;
+    await Promise.all(Object.entries(CONFIG.tabs).map(async ([id, gid]) => {
+      try { state[id] = { status: 'ok', data: toRows(parseCsv(await fetchTab(gid))) }; }
+      catch (e) { console.error(id, e); if (!state[id] || state[id].status !== 'ok') state[id] = { status: 'error' }; }
+    }));
+    computeCalcs(); emit();
+    const ok = Object.keys(CONFIG.tabs).every((id) => state[id].status === 'ok');
+    document.getElementById('updated').textContent = (ok ? 'Live from the Recrea8 tracker · loaded ' : 'Some data didn’t load · tried ') + new Date().toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    if (btn) btn.disabled = false;
+  };
+  return {
+    colors, load, redraw: emit,
+    calc: (id, def) => { calcs[id] = def; },
+    data: (id) => state[id] || { status: 'loading' },
+    onData: (cb) => subs.push(cb),
+  };
+})();
+
+
+dash.calc('store_velocity', {
+  title: 'Store velocity',
+  description: 'Per store: pints scanned ÷ weeks of scan data ÷ SKUs carried.',
+  inputs: ['store_sku'],
+  fn: (store_sku) => {
+    const by = new Map();
+    for (const r of store_sku) {
+      const k = r['Store ID'];
+      if (!by.has(k)) by.set(k, { 'Store ID': k, Store: r.Store, Units: 0, Weeks: r.Weeks, SKUs: 0 });
+      const s = by.get(k); s.Units += r['Units Scanned'] || 0; s.SKUs += 1;
+    }
+    return [...by.values()].map((s) => ({ ...s, 'U/S/S/W': s.Weeks ? s.Units / s.Weeks / s.SKUs : null }));
+  },
+});
+
+dash.calc('sku_pivot', {
+  title: 'Velocity by store and SKU',
+  description: 'The U/S/S/W of each SKU, one row per store.',
+  inputs: ['store_sku'],
+  fn: (store_sku) => {
+    const by = new Map();
+    for (const r of store_sku) {
+      const k = r['Store ID'];
+      if (!by.has(k)) by.set(k, { 'Store ID': k, Store: r.Store, 'Honey Vanilla': null, 'Mint Cacao': null, Cacao: null });
+      by.get(k)[r.SKU] = r['U/S/S/W'];
+    }
+    return [...by.values()];
+  },
+});
+
+dash.calc('sku_mix', {
+  title: 'Flavor mix',
+  description: 'Pints scanned per SKU, counting each sale once.',
+  inputs: ['sales_log'],
+  fn: (sales_log) => {
+    const t = { 'Honey Vanilla': 0, 'Mint Cacao': 0, Cacao: 0 };
+    for (const r of sales_log) if (r['Count in totals?'] === 'Y' && r.SKU in t) t[r.SKU] += r.Units || 0;
+    const all = t['Honey Vanilla'] + t['Mint Cacao'] + t.Cacao;
+    return Object.entries(t).map(([SKU, Units]) => ({ SKU, Units, Share: all ? Units / all : null }));
+  },
+});
+
+dash.calc('ravitz_weekly', {
+  title: 'Ravitz pints per week',
+  description: 'Weekly scan rows summed by week and SKU across the 5 Ravitz stores.',
+  inputs: ['sales_log'],
+  fn: (sales_log) => {
+    const by = new Map();
+    for (const r of sales_log) {
+      if (r.Granularity !== 'Week' || r.Account !== 'ShopRite – Ravitz') continue;
+      const w = r['Period Start'];
+      if (!by.has(w)) by.set(w, { Week: w, 'Honey Vanilla': 0, 'Mint Cacao': 0, Cacao: 0, Total: 0 });
+      const o = by.get(w); o[r.SKU] += r.Units || 0; o.Total += r.Units || 0;
+    }
+    return [...by.values()].sort((a, b) => (a.Week < b.Week ? -1 : 1));
+  },
+});
+
+dash.calc('monthly_sellin', {
+  title: 'Pints shipped per month',
+  description: 'Invoiced pints summed by month and account.',
+  inputs: ['orders'],
+  fn: (orders) => {
+    const accts = ["McCaffrey's", 'ShopRite – Ravitz', 'ShopRite – Inserra', 'Independent'];
+    const by = new Map();
+    for (const r of orders) {
+      if (!r.Date || typeof r.Pints !== 'number') continue;
+      const m = r.Date.slice(0, 7);
+      if (!by.has(m)) by.set(m, Object.fromEntries([['Month', m], ...accts.map((a) => [a, 0]), ['Total', 0]]));
+      const o = by.get(m);
+      if (r.Account in o) o[r.Account] += r.Pints;
+      o.Total += r.Pints;
+    }
+    return [...by.values()].sort((a, b) => (a.Month < b.Month ? -1 : 1));
+  },
+});
+
+dash.calc('timeline', {
+  title: 'Timeline',
+  description: 'Acceptance and first-delivery dates from Stores, plus demos and promos.',
+  inputs: ['stores', 'events'],
+  fn: (stores, events) => {
+    const out = [];
+    for (const s of stores) {
+      if (s.Accepted) out.push({ key: s['Store ID'] + ':acc', Date: s.Accepted, Event: 'Accepted', Store: s.Store, Detail: s.Account });
+      if (s['First Delivery']) out.push({ key: s['Store ID'] + ':del', Date: s['First Delivery'], Event: 'First delivery', Store: s.Store, Detail: s.Route });
+    }
+    events.forEach((e, i) => out.push({ key: 'ev' + i, Date: e.Date, Event: e.Type, Store: e.Store, Detail: [e.Details, e['Units Sold During'] ? e['Units Sold During'] + ' sold' : null].filter(Boolean).join(' · ') }));
+    return out.sort((a, b) => ((b.Date || '') > (a.Date || '') ? 1 : -1));
+  },
+});
+
+const R8 = {
+  acctColor: (acct) => {
+    const i = { "McCaffrey's": 0, 'ShopRite – Ravitz': 1, 'ShopRite – Inserra': 2, 'Independent': 3 }[acct];
+    return i === undefined ? 'var(--cds-chart-muted)' : dash.colors[i];
+  },
+  acctOf: (id) => (id.startsWith('MC-') ? "McCaffrey's" : id.startsWith('WF-') || id.startsWith('RV-') ? 'ShopRite – Ravitz' : id.startsWith('IN-') ? 'ShopRite – Inserra' : 'Independent'),
+  int: d3.format(','),
+  money: d3.format('$,.2f'),
+  dec: d3.format('.2f'),
+  pct: d3.format('.0%'),
+  day: (s) => (s ? d3.utcFormat('%b %-d, %Y')(new Date(s + 'T00:00:00Z')) : ''),
+  short: (s) => d3.utcFormat('%b %-d')(new Date(s + 'T00:00:00Z')),
+  month: (s) => d3.utcFormat('%b')(new Date(s + '-01T00:00:00Z')),
+  fail: (el) => { el.replaceChildren(); const d = document.createElement('div'); d.className = 'fail'; d.textContent = 'Failed to load'; el.append(d); },
+  tip: (box) => {
+    let t = box.querySelector('.tip');
+    if (!t) { t = document.createElement('div'); t.className = 'tip'; box.append(t); }
+    return {
+      show: (ev, title, lines) => {
+        t.replaceChildren();
+        const h = document.createElement('div'); h.className = 't'; h.textContent = title; t.append(h);
+        for (const [color, label, val] of lines) {
+          const l = document.createElement('div');
+          if (color) { const s = document.createElement('span'); s.className = 'sw'; s.style.background = color; l.append(s); }
+          l.append(document.createTextNode(label + '  ' + val)); t.append(l);
+        }
+        t.style.display = 'block';
+        const b = box.getBoundingClientRect();
+        let x = ev.clientX - b.left + 12, y = ev.clientY - b.top + 12;
+        if (x + t.offsetWidth > b.width) x = ev.clientX - b.left - t.offsetWidth - 12;
+        t.style.left = Math.max(0, x) + 'px'; t.style.top = y + 'px';
+      },
+      hide: () => { t.style.display = 'none'; },
+    };
+  },
+  legend: (el, items) => {
+    el.replaceChildren(...items.map(([c, l]) => { const s = document.createElement('span'); const sw = document.createElement('span'); sw.className = 'sw'; sw.style.background = c; s.append(sw, document.createTextNode(l)); return s; }));
+  },
+  axisStyle: (g) => { g.attr('font-size', null).attr('font-family', null); g.selectAll('text').attr('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)'); g.selectAll('line,path').attr('stroke', 'var(--cds-chart-axis)'); },
+  // stacked vertical bars
+  stacked: (box, rows, xKey, keys, colors, xLabel) => {
+    box.querySelectorAll('svg').forEach((n) => n.remove());
+    const W = box.clientWidth || 600, H = 240, m = { t: 8, r: 8, b: 26, l: 36 };
+    const x = d3.scaleBand(rows.map((r) => r[xKey]), [m.l, W - m.r]).padding(0.28);
+    const max = d3.max(rows, (r) => d3.sum(keys, (k) => r[k] || 0)) || 1;
+    const y = d3.scaleLinear([0, max], [H - m.b, m.t]).nice();
+    const svg = d3.select(box).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).style('display', 'block');
+    svg.append('g').selectAll('line').data(y.ticks(4)).join('line').attr('x1', m.l).attr('x2', W - m.r).attr('y1', y).attr('y2', y).attr('stroke', 'var(--cds-chart-grid)');
+    svg.append('g').attr('transform', `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(4).tickSize(0).tickPadding(6)).call(R8.axisStyle).call((g) => g.select('.domain').remove());
+    const every = Math.ceil(rows.length / Math.max(1, Math.floor((W - m.l) / 52)));
+    svg.append('g').attr('transform', `translate(0,${H - m.b})`).call(d3.axisBottom(x).tickSize(0).tickPadding(8).tickFormat((d, i) => (i % every ? '' : xLabel(d)))).call(R8.axisStyle);
+    const tip = R8.tip(box);
+    const series = d3.stack().keys(keys)(rows);
+    svg.append('g').selectAll('g').data(series).join('g').attr('fill', (s, i) => colors[i])
+      .selectAll('rect').data((s) => s).join('rect')
+      .attr('x', (d) => x(d.data[xKey])).attr('width', x.bandwidth())
+      .attr('y', (d) => y(d[1])).attr('height', (d) => Math.max(0, y(d[0]) - y(d[1])))
+      .on('mousemove', (ev, d) => tip.show(ev, xLabel(d.data[xKey], true), [...keys.map((k, i) => [colors[i], k, R8.int(d.data[k] || 0)]), [null, 'Total', R8.int(d3.sum(keys, (k) => d.data[k] || 0))]]))
+      .on('mouseleave', tip.hide);
+  },
+};
+
+// Headline + takeaway
+dash.onData(() => {
+  const k = dash.data('kpis');
+  document.querySelectorAll('.kpi .val').forEach((el) => {
+    if (k.status === 'ok') {
+      const name = new URLSearchParams(el.dataset.where).get('Headline numbers');
+      const r = k.data.find((x) => x['Headline numbers'] === name);
+      el.classList.remove('dash-skeleton');
+      if (el.id === 'spend-range') {
+        const lo = k.data.find((x) => x['Headline numbers'] === 'Shopper spend – low (all at $6.99 promo)');
+        const f = d3.format('$,.0f');
+        el.textContent = !r || r.Value === null || !lo || lo.Value === null ? '—' : f(lo.Value) + '–' + f(r.Value);
+        return;
+      }
+      el.textContent = !r || r.Value === null ? '—' : name.includes('$') ? R8.money(r.Value) : R8.int(r.Value);
+    } else if (k.status === 'error') { el.classList.remove('dash-skeleton'); el.textContent = '—'; }
+    else el.textContent = '—';
+  });
+  const a = dash.data('accounts');
+  const p = document.getElementById('takeaway');
+  if (a.status === 'ok' && k.status === 'ok') {
+    const mc = a.data.find((r) => r['By account'] === "McCaffrey's");
+    const rv = a.data.find((r) => r['By account'] === 'ShopRite – Ravitz');
+    const scanned = k.data.find((r) => r['Headline numbers'] === 'Units scanned at register (sell-through)');
+    p.replaceChildren();
+    const b = (text, where, field = 'U/S/S/W', src = 'accounts') => { const s = document.createElement('b'); s.dataset.source = src; s.dataset.field = field; s.dataset.where = where; s.textContent = text; return s; };
+    p.append(
+      b(R8.int(scanned.Value), 'Headline numbers=Units scanned at register (sell-through)', 'Value', 'kpis'),
+      document.createTextNode(' pints have scanned at register. Ravitz ShopRites turn '),
+      b(R8.dec(rv['U/S/S/W']), 'By account=ShopRite – Ravitz'),
+      document.createTextNode(' units per store per SKU per week and McCaffrey’s '),
+      b(R8.dec(mc['U/S/S/W']), "By account=McCaffrey's"),
+      document.createTextNode('. Hoboken ShopRite sold out after one in-store demo.'),
+    );
+  } else if (a.status === 'error' || k.status === 'error') { p.textContent = 'Some numbers didn’t load. Try Refresh in a minute.'; }
+});
+
+// Store velocity bars
+dash.onData(() => {
+  const box = document.getElementById('store-velocity');
+  const d = dash.data('store_velocity');
+  if (d.status === 'error') return R8.fail(box);
+  if (d.status !== 'ok') { box.querySelectorAll('svg').forEach((n) => n.remove()); return; }
+  const rows = d.data.filter((r) => r['U/S/S/W'] !== null).sort((x, y) => y['U/S/S/W'] - x['U/S/S/W']);
+  R8.legend(document.getElementById('vel-legend'), [["McCaffrey's", 0], ['Ravitz ShopRite', 1], ['Inserra ShopRite', 2]].map(([l, i]) => [dash.colors[i], l]));
+  box.querySelectorAll('svg').forEach((n) => n.remove());
+  const W = box.clientWidth || 600, row = 24, H = rows.length * row + 28;
+  const svg = d3.select(box).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).style('display', 'block');
+  const probe = svg.append('text').style('font-size', 'var(--cds-font-size-caption)');
+  const lw = d3.max(rows, (r) => { probe.text(r.Store); return probe.node().getComputedTextLength(); }) || 80;
+  probe.remove();
+  const m = { l: Math.min(lw + 10, W * 0.45), r: 44, t: 4, b: 22 };
+  const x = d3.scaleLinear([0, d3.max(rows, (r) => r['U/S/S/W']) || 1], [m.l, W - m.r]).nice();
+  const y = d3.scaleBand(rows.map((r) => r['Store ID']), [m.t, H - m.b]).padding(0.3);
+  svg.append('g').selectAll('line').data(x.ticks(4)).join('line').attr('x1', x).attr('x2', x).attr('y1', m.t).attr('y2', H - m.b).attr('stroke', 'var(--cds-chart-grid)');
+  svg.append('g').attr('transform', `translate(0,${H - m.b})`).call(d3.axisBottom(x).ticks(4).tickSize(0).tickPadding(6)).call(R8.axisStyle).call((g) => g.select('.domain').remove());
+  const tip = R8.tip(box);
+  svg.append('g').selectAll('rect').data(rows).join('rect')
+    .attr('x', m.l).attr('y', (r) => y(r['Store ID'])).attr('height', y.bandwidth()).attr('width', (r) => Math.max(1, x(r['U/S/S/W']) - m.l)).attr('rx', 4)
+    .attr('fill', (r) => R8.acctColor(R8.acctOf(r['Store ID'])))
+    .on('mousemove', (ev, r) => tip.show(ev, r.Store, [[null, 'U/S/S/W', R8.dec(r['U/S/S/W'])], [null, 'Pints scanned', R8.int(r.Units)], [null, 'Weeks of data', d3.format('.1f')(r.Weeks)]]))
+    .on('mouseleave', tip.hide);
+  svg.append('g').selectAll('text').data(rows).join('text').attr('x', m.l - 8).attr('y', (r) => y(r['Store ID']) + y.bandwidth() / 2).attr('dy', '0.35em').attr('text-anchor', 'end').attr('fill', 'var(--color-fg)').style('font-size', 'var(--cds-font-size-caption)').text((r) => r.Store);
+  svg.append('g').selectAll('text').data(rows).join('text').attr('x', (r) => x(r['U/S/S/W']) + 6).attr('y', (r) => y(r['Store ID']) + y.bandwidth() / 2).attr('dy', '0.35em').attr('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)').style('font-variant-numeric', 'tabular-nums').text((r) => R8.dec(r['U/S/S/W']));
+});
+
+// Account table
+dash.onData(() => {
+  const d = dash.data('accounts');
+  const tb = document.querySelector('#account-table tbody');
+  if (d.status !== 'ok') { tb.replaceChildren(); return; }
+  tb.replaceChildren(...d.data.map((r) => {
+    const tr = document.createElement('tr');
+    const cells = [[r['By account'], ''], [R8.int(r['Doors on Shelf'] ?? 0), 'n'], [R8.int(r['Pints Shipped'] ?? 0), 'n'], [R8.int(r['Units Scanned'] ?? 0), 'n'], [r['Weeks of Scan Data'] == null ? '–' : d3.format('.1f')(r['Weeks of Scan Data']), 'n'], [r['U/S/S/W'] == null ? '–' : R8.dec(r['U/S/S/W']), 'n']];
+    for (const [t, c] of cells) { const td = document.createElement('td'); td.textContent = t; if (c) td.className = c; tr.append(td); }
+    return tr;
+  }));
+});
+
+// SKU heat table
+dash.onData(() => {
+  const d = dash.data('sku_pivot');
+  const tb = document.querySelector('#sku-heat tbody');
+  if (d.status !== 'ok') { tb.replaceChildren(); return; }
+  const skus = ['Honey Vanilla', 'Mint Cacao', 'Cacao'];
+  const max = d3.max(d.data, (r) => d3.max(skus, (s) => r[s] || 0)) || 1;
+  const rows = [...d.data].sort((a, b) => d3.sum(skus, (s) => b[s] || 0) - d3.sum(skus, (s) => a[s] || 0));
+  tb.replaceChildren(...rows.map((r) => {
+    const tr = document.createElement('tr');
+    const id = document.createElement('td'); id.textContent = r['Store ID'];
+    const nm = document.createElement('td'); nm.textContent = r.Store;
+    tr.append(id, nm);
+    for (const s of skus) {
+      const td = document.createElement('td'); td.className = 'h';
+      td.textContent = r[s] == null ? '–' : R8.dec(r[s]);
+      if (r[s] != null) td.style.background = `color-mix(in srgb, ${dash.colors[0]} ${Math.round((r[s] / max) * 55)}%, transparent)`;
+      tr.append(td);
+    }
+    return tr;
+  }));
+});
+
+// Flavor mix
+dash.onData(() => {
+  const box = document.getElementById('sku-mix');
+  const d = dash.data('sku_mix');
+  if (d.status === 'error') return R8.fail(box);
+  box.querySelectorAll('svg').forEach((n) => n.remove());
+  if (d.status !== 'ok') return;
+  const rows = d.data;
+  const W = box.clientWidth || 400, H = rows.length * 34 + 6;
+  const svg = d3.select(box).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).style('display', 'block');
+  const m = { l: 104, r: 92 };
+  const x = d3.scaleLinear([0, d3.max(rows, (r) => r.Share) || 1], [m.l, W - m.r]);
+  rows.forEach((r, i) => {
+    const yy = 4 + i * 34;
+    svg.append('text').attr('x', m.l - 8).attr('y', yy + 11).attr('dy', '0.35em').attr('text-anchor', 'end').attr('fill', 'var(--color-fg)').style('font-size', 'var(--cds-font-size-caption)').text(r.SKU);
+    svg.append('rect').attr('x', m.l).attr('y', yy).attr('height', 22).attr('rx', 4).attr('width', Math.max(1, x(r.Share) - m.l)).attr('fill', dash.colors[i]);
+    svg.append('text').attr('x', x(r.Share) + 8).attr('y', yy + 11).attr('dy', '0.35em').attr('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)').text(`${R8.pct(r.Share)} · ${R8.int(r.Units)}`);
+  });
+});
+
+// Ravitz weekly
+dash.onData(() => {
+  const box = document.getElementById('weekly');
+  const d = dash.data('ravitz_weekly');
+  if (d.status === 'error') return R8.fail(box);
+  if (d.status !== 'ok') { box.querySelectorAll('svg').forEach((n) => n.remove()); return; }
+  const keys = ['Honey Vanilla', 'Mint Cacao', 'Cacao'];
+  const colors = keys.map((_, i) => dash.colors[i]);
+  R8.legend(document.getElementById('weekly-legend'), keys.map((k, i) => [colors[i], k]));
+  R8.stacked(box, d.data, 'Week', keys, colors, (w, long) => (long ? 'Week of ' + R8.short(w) : R8.short(w)));
+});
+
+// Monthly sell-in
+dash.onData(() => {
+  const box = document.getElementById('sellin');
+  const d = dash.data('monthly_sellin');
+  if (d.status === 'error') return R8.fail(box);
+  if (d.status !== 'ok') { box.querySelectorAll('svg').forEach((n) => n.remove()); return; }
+  const keys = ["McCaffrey's", 'ShopRite – Ravitz', 'ShopRite – Inserra', 'Independent'];
+  const colors = keys.map((k) => R8.acctColor(k));
+  R8.legend(document.getElementById('sellin-legend'), keys.map((k, i) => [colors[i], k]));
+  R8.stacked(box, d.data, 'Month', keys, colors, (mth, long) => (long ? d3.utcFormat('%B %Y')(new Date(mth + '-01T00:00:00Z')) : R8.month(mth)));
+});
+
+// Store table with search + sort
+const storeState = { key: 'Units Scanned (sell-through)', dir: -1 };
+const statusClass = (s) => (!s ? '' : /sold out|no reorder/i.test(s) ? 'warn' : /reorder|on shelf/i.test(s) ? 'ok' : '');
+const drawStores = () => {
+  const d = dash.data('stores');
+  const tb = document.querySelector('#stores-table tbody');
+  if (d.status !== 'ok') { tb.replaceChildren(); return; }
+  const q = document.getElementById('store-search').value.trim().toLowerCase();
+  const k = storeState.key;
+  const rows = d.data
+    .filter((r) => !q || [r['Store ID'], r.Store, r.Status, r.Route, r.Account, r.City].join(' ').toLowerCase().includes(q))
+    .sort((a, b) => {
+      const x = a[k], y = b[k];
+      if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1;
+      return (x < y ? -1 : x > y ? 1 : 0) * storeState.dir;
+    });
+  document.querySelectorAll('#stores-table th').forEach((th) => th.setAttribute('aria-sort', th.dataset.field === k ? (storeState.dir > 0 ? 'ascending' : 'descending') : 'none'));
+  tb.replaceChildren(...rows.map((r) => {
+    const tr = document.createElement('tr');
+    const td = (t, c) => { const e = document.createElement('td'); e.textContent = t; if (c) e.className = c; return e; };
+    const st = document.createElement('td'); const pill = document.createElement('span'); pill.className = 'pill ' + statusClass(r.Status); pill.textContent = r.Status || ''; st.append(pill);
+    tr.append(
+      td(r['Store ID']), td(r.Store), st, td(r.Route || ''), td(R8.day(r.Accepted)), td(R8.day(r['First Delivery'])),
+      td(R8.int(r['Pints Shipped (sell-in)'] ?? 0), 'n'), td(R8.int(r['Units Scanned (sell-through)'] ?? 0), 'n'),
+      td(r['U/S/S/W'] == null ? '–' : R8.dec(r['U/S/S/W']), 'n'), td(R8.day(r['Last Order'])), td(r['Days Since Order'] == null ? '' : R8.int(r['Days Since Order']), 'n'),
+    );
+    return tr;
+  }));
+};
+document.getElementById('store-search').addEventListener('input', drawStores);
+document.querySelectorAll('#stores-table th button').forEach((b) => b.addEventListener('click', () => {
+  storeState.dir = storeState.key === b.dataset.k ? -storeState.dir : -1;
+  storeState.key = b.dataset.k; drawStores();
+}));
+dash.onData(drawStores);
+
+// Timeline
+dash.onData(() => {
+  const d = dash.data('timeline');
+  const tb = document.querySelector('#timeline tbody');
+  if (d.status !== 'ok') { tb.replaceChildren(); return; }
+  tb.replaceChildren(...d.data.map((r) => {
+    const tr = document.createElement('tr');
+    const td = (t) => { const e = document.createElement('td'); e.textContent = t; return e; };
+    const ev = document.createElement('td'); const p = document.createElement('span');
+    p.className = 'pill ' + (r.Event === 'Demo' ? 'ok' : r.Event === 'Promo' ? 'warn' : '');
+    p.textContent = r.Event; ev.append(p);
+    tr.dataset.key = r.key;
+    tr.append(td(r.Date ? R8.day(r.Date) : 'Date TBD'), ev, td(r.Store || ''), td(r.Detail || ''));
+    return tr;
+  }));
+});
+
+
+document.getElementById('refresh').addEventListener('click', () => dash.load());
+dash.load();
+setInterval(() => { if (!document.hidden) dash.load(); }, CONFIG.refreshMinutes * 60000);
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(dash.redraw, 200); });
+
+</script>
+</body>
+</html>
