@@ -87,7 +87,7 @@ body { padding: 24px 16px 48px; font-family: var(--font-anthropic-sans); }
 
   <section class="kpis" id="headline">
     <div class="kpi"><span class="lbl">Doors on shelf</span><span class="val dash-skeleton" data-source="kpis" data-field="Value" data-where="Headline numbers=Doors on shelf">—</span><span class="sub">Stocked or reordering</span></div>
-    <div class="kpi"><span class="lbl">Accepted, not yet selling</span><span class="val dash-skeleton" data-source="kpis" data-field="Value" data-where="Headline numbers=Accepted / authorized – not yet selling">—</span><span class="sub">Mostly Inserra ShopRites authorized but not yet ordering</span></div>
+    <div class="kpi"><span class="lbl">Accepted, not yet selling</span><span class="val dash-skeleton" data-source="kpis" data-field="Value" data-where="Headline numbers=Accepted / authorized – not yet selling">—</span><span class="sub">Mostly Inserra and Village stores authorized but not yet ordering</span></div>
     <div class="kpi"><span class="lbl">Pints shipped to stores</span><span class="val dash-skeleton" data-source="kpis" data-field="Value" data-where="Headline numbers=Pints shipped to stores (sell-in)">—</span><span class="sub">Since first order, April 2026</span></div>
     <div class="kpi"><span class="lbl">Invoiced to date</span><span class="val dash-skeleton" data-source="kpis" data-field="Value" data-where="Headline numbers=Net $ invoiced to date">—</span><span class="sub">Direct + Artisan Exchange + McMahon's opening pallet</span></div>
     <div class="kpi"><span class="lbl">Intro discounts &amp; free fill</span><span class="val dash-skeleton" data-source="kpis" data-field="Value" data-where="Headline numbers=Intro discounts given (first orders)">—</span><span class="sub">Invested to win McCaffrey's (50% off first case) and Ravitz (1 free case per flavor)</span></div>
@@ -365,7 +365,7 @@ dash.calc('monthly_sellin', {
   description: 'Invoiced pints summed by month and account.',
   inputs: ['orders'],
   fn: (orders) => {
-    const accts = ["McCaffrey's", 'ShopRite – Ravitz', 'ShopRite – Inserra', 'Village (Fairway / Gourmet Garage)', 'Independent'];
+    const accts = ["McCaffrey's", 'ShopRite – Ravitz', 'ShopRite – Inserra', 'Village Super Market', 'Independent'];
     const by = new Map();
     for (const r of orders) {
       if (!r.Date || typeof r.Pints !== 'number') continue;
@@ -396,7 +396,7 @@ dash.calc('timeline', {
 
 const R8 = {
   acctColor: (acct) => {
-    const i = { "McCaffrey's": 0, 'ShopRite – Ravitz': 1, 'ShopRite – Inserra': 2, 'Independent': 3, 'Village (Fairway / Gourmet Garage)': 4 }[acct];
+    const i = { "McCaffrey's": 0, 'ShopRite – Ravitz': 1, 'ShopRite – Inserra': 2, 'Independent': 3, 'Village Super Market': 4 }[acct];
     return i === undefined ? 'var(--cds-chart-muted)' : dash.colors[i];
   },
   acctOf: (id) => (id.startsWith('MC-') ? "McCaffrey's" : id.startsWith('WF-') || id.startsWith('RV-') ? 'ShopRite – Ravitz' : id.startsWith('IN-') ? 'ShopRite – Inserra' : 'Independent'),
@@ -596,7 +596,7 @@ dash.onData(() => {
   const d = dash.data('monthly_sellin');
   if (d.status === 'error') return R8.fail(box);
   if (d.status !== 'ok') { box.querySelectorAll('svg').forEach((n) => n.remove()); return; }
-  const keys = ["McCaffrey's", 'ShopRite – Ravitz', 'ShopRite – Inserra', 'Village (Fairway / Gourmet Garage)', 'Independent'];
+  const keys = ["McCaffrey's", 'ShopRite – Ravitz', 'ShopRite – Inserra', 'Village Super Market', 'Independent'];
   const colors = keys.map((k) => R8.acctColor(k));
   R8.legend(document.getElementById('sellin-legend'), keys.map((k, i) => [colors[i], k]));
   R8.stacked(box, d.data, 'Month', keys, colors, (mth, long) => (long ? d3.utcFormat('%B %Y')(new Date(mth + '-01T00:00:00Z')) : R8.month(mth)));
@@ -615,7 +615,7 @@ dash.onData(() => {
   if (tot) document.getElementById('chains-sum').textContent = `${R8.int(tot['On Shelf'])} of ${R8.int(tot['Total Stores in Chain'])} stores in these chains carry Recrea8 today, and ${R8.int(tot['Authorized / Ordered'])} more are authorized or have ordered. The rest are stores we can win without opening a new account.`;
   const accent = dash.colors[0];
   R8.legend(document.getElementById('chains-legend'), [[accent, 'On shelf'], [`color-mix(in srgb, ${accent} 35%, transparent)`, 'Authorized or ordered'], ['var(--cds-chart-grid)', 'Not yet carrying']]);
-  const short = (n) => n.replace('ShopRite – ', 'ShopRite ').replace(' (Fairway / Gourmet Garage)', (box.clientWidth || 600) < 520 ? '' : ' (Fairway, GG)').replace(' Fresh Markets', '');
+  const short = (n) => n.replace('ShopRite – ', 'ShopRite ').replace(' Super Market', '').replace(' Fresh Markets', '');
   const W = box.clientWidth || 600, row = 34, H = rows.length * row + 6;
   const lw = Math.min(190, W * 0.36), rw = 64;
   const svg = d3.select(box).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).style('display', 'block');
