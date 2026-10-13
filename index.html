@@ -90,6 +90,7 @@ body { padding: 24px 16px 48px; font-family: var(--font-anthropic-sans); }
     <div class="kpi"><span class="lbl">Accepted, not yet selling</span><span class="val dash-skeleton" data-source="kpis" data-field="Value" data-where="Headline numbers=Accepted / authorized – not yet selling">—</span><span class="sub">Mostly Inserra ShopRites authorized but not yet ordering</span></div>
     <div class="kpi"><span class="lbl">Pints shipped to stores</span><span class="val dash-skeleton" data-source="kpis" data-field="Value" data-where="Headline numbers=Pints shipped to stores (sell-in)">—</span><span class="sub">Since first order, April 2026</span></div>
     <div class="kpi"><span class="lbl">Invoiced to date</span><span class="val dash-skeleton" data-source="kpis" data-field="Value" data-where="Headline numbers=Net $ invoiced to date">—</span><span class="sub">Direct + Artisan Exchange + McMahon's opening pallet</span></div>
+    <div class="kpi"><span class="lbl">Intro discounts &amp; free fill</span><span class="val dash-skeleton" data-source="kpis" data-field="Value" data-where="Headline numbers=Intro discounts given (first orders)">—</span><span class="sub">Invested to win McCaffrey's (50% off first case) and Ravitz (1 free case per flavor)</span></div>
     <div class="kpi"><span class="lbl">Pints scanned at register</span><span class="val dash-skeleton" data-source="kpis" data-field="Value" data-where="Headline numbers=Units scanned at register (sell-through)">—</span><span class="sub">13 stores that send scan data</span></div>
     <div class="kpi"><span class="lbl">Shopper spend at $8.99</span><span class="val dash-skeleton" data-source="kpis" data-field="Value" data-where="Headline numbers=Shopper spend at $8.99">—</span><span class="sub">Scanned pints × $8.99 (prices run $6.99–$9.99)</span></div>
   </section>
@@ -462,7 +463,7 @@ dash.onData(() => {
         el.textContent = !r || r.Value === null || !lo || lo.Value === null ? '—' : f(lo.Value) + '–' + f(r.Value);
         return;
       }
-      el.textContent = !r || r.Value === null ? '—' : name.includes('$') ? R8.money(r.Value) : R8.int(r.Value);
+      el.textContent = !r || r.Value === null ? '—' : /\$|discount/i.test(name) ? R8.money(r.Value) : R8.int(r.Value);
     } else if (k.status === 'error') { el.classList.remove('dash-skeleton'); el.textContent = '—'; }
     else el.textContent = '—';
   });
