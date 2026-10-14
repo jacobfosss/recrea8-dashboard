@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recrea8 Logistics</title>
+<meta name="description" content="What to order, when, cash needed and batches Recrea8 can make.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%233b6fb6'/%3E%3Ctext x='16' y='22' font-size='16' text-anchor='middle' fill='white' font-family='Arial'%3ER8%3C/text%3E%3C/svg%3E">
+<style>
+:root {
+  color-scheme: light dark;
+  --font-anthropic-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-anthropic-serif: Georgia, "Times New Roman", serif;
+  --color-bg: #f7f6f2; --color-panel: #ffffff; --color-fg: #1f1e1c; --color-fg-muted: #6b6862;
+  --color-border-line: #e4e1da; --color-ok: #2f7d4f; --color-warn: #b5651d; --color-bad: #c0392b;
+  --cds-chart-grid: #ece9e3; --cds-chart-axis: #d6d2ca; --cds-chart-muted: #b9b5ad; --cds-chart-reference: #8d8981;
+  --cds-surface-popover: #ffffff; --cds-border: #e4e1da; --cds-shadow-popover: 0 6px 20px rgba(0,0,0,.12); --cds-text-secondary: #6b6862;
+  --cds-pad-xs: 4px; --cds-pad-sm: 8px; --cds-pad-md: 12px; --cds-pad-lg: 16px;
+  --cds-gap-xs: 4px; --cds-gap-sm: 8px; --cds-gap-md: 14px; --cds-gap-lg: 22px; --cds-radius: 10px;
+  --cds-font-size-caption: 12.5px; --cds-font-size-body: 15px; --cds-font-size-heading: 16px; --cds-font-size-title: 28px; --cds-font-weight-medium: 600;
+  --cds-dur-slow: .3s;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg: #191817; --color-panel: #22211f; --color-fg: #ecebe8; --color-fg-muted: #a19e97; --color-border-line: #37352f;
+    --color-ok: #6cc08b; --color-warn: #e3a062; --color-bad: #ee7b6e;
+    --cds-chart-grid: #2f2d29; --cds-chart-axis: #45423c; --cds-chart-muted: #5d5a53; --cds-surface-popover: #2a2926; --cds-border: #3a3832; --cds-text-secondary: #a19e97;
+  }
+}
+html, body { margin: 0; background: var(--color-bg); color: var(--color-fg); }
+body { padding: 24px 16px 48px; font-family: var(--font-anthropic-sans); }
+.dash-skeleton { color: var(--color-fg-muted); }
+.r8 .meta { margin: 6px 0 0; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.r8 .meta button { font: inherit; color: var(--color-fg); background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: 999px; padding: 2px 10px; cursor: pointer; }
+.r8 .meta button:disabled { opacity: .5; cursor: default; }
+.r8 footer { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+@media (max-width: 520px) { body { padding: 16px 16px 40px; } :root { --cds-font-size-title: 24px; } }
+</style>
+<style>
+#dash-root { --dash-gutter: var(--cds-pad-lg); }
+.r8 { font-family: var(--font-anthropic-sans); color: var(--color-fg); max-width: 1280px; margin-inline: auto; display: grid; gap: var(--cds-gap-lg); }
+.r8 h1 { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); margin: 0; }
+.r8 .take { color: var(--color-fg-muted); font-size: var(--cds-font-size-body); margin: var(--cds-gap-xs) 0 0; max-width: 70ch; line-height: 1.5; }
+.r8 .take b { font-weight: 600; color: var(--color-fg); }
+.r8 h2 { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); margin: var(--cds-gap-md) 0 0; }
+.r8 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 10.5rem), 1fr)); gap: var(--cds-gap-md); }
+.r8 .kpi { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-md) var(--cds-pad-lg); display: grid; gap: var(--cds-gap-xs); align-content: start; }
+.r8 .kpi .lbl { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.r8 .kpi .val { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); font-variant-numeric: tabular-nums; min-height: 1.3em; }
+.r8 .kpi .sub { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.r8 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr)); gap: var(--cds-gap-md); }
+.r8 .card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); min-width: 0; }
+.r8 .card h3 { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); margin: 0; }
+.r8 .card .note { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); margin: var(--cds-gap-xs) 0 var(--cds-gap-md); line-height: 1.45; }
+.r8 .chart { position: relative; min-height: 220px; }
+.r8 .tip { position: absolute; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-xs) var(--cds-pad-sm); font-size: var(--cds-font-size-caption); white-space: nowrap; z-index: 5; display: none; }
+.r8 .tip .t { color: var(--cds-text-secondary); margin-bottom: 2px; }
+.r8 .tip .sw { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
+.r8 .legend { display: flex; flex-wrap: wrap; gap: var(--cds-gap-sm) var(--cds-gap-md); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); margin-bottom: var(--cds-gap-sm); }
+.r8 .legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.r8 .tbl { max-height: 520px; overflow: auto; }
+.r8 table { border-collapse: collapse; width: 100%; font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; }
+.r8 th { text-align: left; font-weight: var(--cds-font-weight-medium); color: var(--color-fg-muted); padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); position: sticky; top: 0; background: var(--color-panel); white-space: nowrap; }
+.r8 th button { all: unset; cursor: pointer; }
+.r8 td { padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); vertical-align: top; }
+.r8 td.n, .r8 th.n { text-align: right; }
+.r8 tr.tot td { font-weight: 600; }
+.r8 .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: var(--cds-font-size-caption); background: color-mix(in srgb, var(--color-fg) 8%, transparent); white-space: nowrap; }
+.r8 .pill.ok { color: var(--color-ok); } .r8 .pill.warn { color: var(--color-warn); } .r8 .pill.bad { color: var(--color-bad); }
+.r8 .heat td.h { text-align: right; border-radius: 4px; }
+.r8 .search { width: 100%; max-width: 18rem; padding: var(--cds-pad-xs) var(--cds-pad-sm); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); background: var(--color-bg); color: var(--color-fg); font: inherit; font-size: var(--cds-font-size-caption); margin-bottom: var(--cds-gap-sm); }
+.r8 .tl { display: grid; gap: 0; }
+.r8 .fail { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: inherit; color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+.r8 .fail::before { content: ""; width: .375rem; height: .375rem; border-radius: 50%; background: var(--color-bad); }
+.r8 [data-dash-source-state=empty] { color: transparent; }
+.r8 [data-dash-source-state=refreshing] { opacity: .5; transition: opacity var(--cds-dur-slow); }
+<style>
+.r8 .switch { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--color-border-line); border-radius: 999px; background: var(--color-panel); margin-bottom: var(--cds-gap-sm); }
+.r8 .switch a { padding: 4px 14px; border-radius: 999px; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); text-decoration: none; }
+.r8 .switch a[aria-current=page] { background: var(--color-fg); color: var(--color-bg); }
+.r8 .orders { display: grid; gap: var(--cds-gap-sm); }
+.r8 .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--cds-gap-md); padding: var(--cds-pad-sm) 0; border-bottom: 1px solid var(--color-border-line); }
+.r8 .row:last-child { border-bottom: 0; }
+.r8 .row { flex-wrap: wrap; } .r8 .row .pill, .r8 td .pill { white-space: normal; }
+.r8 .row .name { font-weight: 600; }
+.r8 .row .why { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.r8 .empty { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+</style>
+</head>
+<body>
+<div class="r8">
+  <header id="top">
+    <nav class="switch" aria-label="Dashboard"><a href="./">Sales</a><a href="./logistics.html" aria-current="page">Logistics</a></nav>
+    <h1>Recrea8 logistics</h1>
+    <p class="take" id="takeaway"><span class="dash-skeleton">Loading the latest numbers…</span></p>
+    <p class="meta"><span id="updated">Loading…</span> · <button id="refresh" type="button">Refresh</button></p>
+  </header>
+
+  <section class="kpis">
+    <div class="kpi"><span class="lbl">Order this week</span><span class="val" id="k-order">—</span><span class="sub">Items out or past their order-by date</span></div>
+    <div class="kpi"><span class="lbl">Batches we can make now</span><span class="val" id="k-batches">—</span><span class="sub" id="k-batches-sub">45 pints per base batch</span></div>
+    <div class="kpi"><span class="lbl">Cash needed, next 30 days</span><span class="val" id="k-cash30">—</span><span class="sub" id="k-cash-sub">—</span></div>
+    <div class="kpi"><span class="lbl">Finished pints on hand</span><span class="val" id="k-fg">—</span><span class="sub" id="k-pace">—</span></div>
+  </section>
+
+  <div class="grid">
+    <div class="card">
+      <h3>What to order this week</h3>
+      <p class="note">Out of stock, or the order-by date (run-out − supplier lead time − 3 weeks production booking − safety buffer) is within 7 days.</p>
+      <div class="orders" id="now"></div>
+    </div>
+    <div class="card">
+      <h3>Coming up in the next 30 days</h3>
+      <p class="note">Order-by dates between 8 and 30 days out.</p>
+      <div class="orders" id="soon"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Every item</h3>
+    <p class="note">On hand = last count + received − used since. Items marked “Needs count” have no count in the tracker yet.</p>
+    <div class="tbl"><table><thead><tr><th>Item</th><th class="n">On hand</th><th>Unit</th><th>Order by</th><th>Status</th><th>Count</th></tr></thead><tbody id="items"></tbody></table></div>
+  </div>
+
+  <div class="card">
+    <h3>Glacier Point — ready by January 27</h3>
+    <p class="note" id="glacier-note">—</p>
+    <section class="kpis" id="glacier-kpis"></section>
+    <div class="tbl" style="margin-top:var(--cds-gap-md)"><table><thead><tr><th>Item</th><th class="n">To buy</th><th>Unit</th><th>Order by</th><th>Status</th></tr></thead><tbody id="glacier"></tbody></table></div>
+  </div>
+
+  <footer>Calculated in the Recrea8 tracker (Logistics Summary tab) · refreshed every 5 minutes.</footer>
+</div>
+<script>
+const CONFIG = {
+  sheetId: '1mqO4Tv3Mqo6kVkB3CG0vEO4LwENa5bpPKll4CRX03mc',
+  pubId: '2PACX-1vT8mCqIjHUX0PljbY52o0Cy2zgRBr0nvYdYGt1RF6rEtaDPn0r7YjhrqTuWdOjUG9LkvDPD6XQ321IK',
+  gid: 109,
+  refreshMinutes: 5,
+};
+const csvUrls = (gid) => {
+  const q = `pub?gid=${gid}&single=true&output=csv&t=${Date.now()}`;
+  return [`https://docs.google.com/spreadsheets/d/e/${CONFIG.pubId}/${q}`, `https://docs.google.com/spreadsheets/d/${CONFIG.sheetId}/${q}`];
+};
+const parseCsv = (text) => {
+  const rows = []; let row = [], f = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
+    else if (c === '"') q = true;
+    else if (c === ',') { row.push(f); f = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(f); rows.push(row); row = []; f = ''; }
+    else f += c;
+  }
+  if (f !== '' || row.length) { row.push(f); rows.push(row); }
+  return rows;
+};
+const num = (v) => { if (v == null || v === '') return null; const n = Number(String(v).replace(/[$,]/g, '')); return Number.isFinite(n) ? n : null; };
+const fmt = (n, d = 0) => n == null ? '—' : n.toLocaleString('en-US', { maximumFractionDigits: d });
+const money = (n) => n == null ? '—' : '$' + fmt(n);
+const day = (s) => { if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return s || '—'; const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); };
+const daysTo = (s) => { if (!/^\d{4}-\d{2}-\d{2}$/.test(s || '')) return null; const [y, m, d] = s.split('-').map(Number); const t = new Date(); t.setHours(0, 0, 0, 0); return Math.round((new Date(y, m - 1, d) - t) / 864e5); };
+const tone = (s) => /out|order now|late|this week/i.test(s) ? 'bad' : /needs|recount|get lead|old/i.test(s) ? 'warn' : /ok|on track/i.test(s) ? 'ok' : '';
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const set = (id, v) => { document.getElementById(id).textContent = v; };
+
+async function fetchTab() {
+  let last;
+  for (const url of csvUrls(CONFIG.gid)) {
+    try {
+      const r = await fetch(url, { cache: 'no-store' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const t = await r.text();
+      if (/^\s*</.test(t)) throw new Error('Not published as CSV yet');
+      return t;
+    } catch (e) { last = e; }
+  }
+  throw last;
+}
+
+function render(rows) {
+  const by = (sec) => rows.filter((r) => r.section === sec);
+  const kpi = Object.fromEntries(by('kpi').map((r) => [r.key, r]));
+  const meta = Object.fromEntries(by('meta').map((r) => [r.key, r.value]));
+  const items = by('item');
+  const now = items.filter((r) => /order now|this week/i.test(r.status));
+  const soon = items.filter((r) => /within 30/i.test(r.status));
+  const blind = items.filter((r) => /needs count/i.test(r.status));
+
+  set('k-order', fmt(num(kpi.to_order?.value)));
+  set('k-batches', fmt(num(kpi.batches?.value)));
+  set('k-batches-sub', kpi.batches?.detail || '');
+  set('k-cash30', money(num(kpi.cash30?.value)));
+  set('k-cash-sub', `60 days ${money(num(kpi.cash60?.value))} · 90 days ${money(num(kpi.cash90?.value))}`);
+  set('k-fg', fmt(num(kpi.fg?.value)));
+  set('k-pace', `Shipping ~${fmt(num(kpi.pace?.value), 1)} pints a week`);
+
+  document.getElementById('takeaway').innerHTML =
+    `<b>${now.length} item${now.length === 1 ? '' : 's'} to order this week</b>` +
+    (blind.length ? `, and <b>${blind.length}</b> with no inventory count yet (${blind.map((r) => esc(r.label)).join(', ')}).` : '.') +
+    ` Glacier Point starts ${esc(by('glacier').find((r) => r.key === 'start')?.value || 'Jan 27, 2027')}.`;
+
+  const list = (el, arr, emptyMsg) => {
+    document.getElementById(el).innerHTML = arr.length ? arr.map((r) => {
+      const d = daysTo(r.order_by);
+      const when = r.order_by ? `Order by ${day(r.order_by)}${d != null ? (d < 0 ? ` (${-d} days ago)` : ` (in ${d} days)`) : ''}` : 'No order-by date yet';
+      return `<div class="row"><div><div class="name">${esc(r.label)}</div><div class="why">${esc(when)} · ${esc(r.detail)}</div></div><span class="pill ${tone(r.status)}">${esc(r.status)}</span></div>`;
+    }).join('') : `<p class="empty">${emptyMsg}</p>`;
+  };
+  list('now', now, 'Nothing urgent this week.');
+  list('soon', soon, blind.length ? 'Nothing scheduled — but several items still need a count, so this list is incomplete.' : 'Nothing due in the next 30 days.');
+
+  document.getElementById('items').innerHTML = items.map((r) => {
+    const v = num(r.value);
+    return `<tr><td>${esc(r.label)}</td><td class="n">${v == null ? '—' : fmt(Math.max(0, v), 1)}${v != null && v < 0 ? ' *' : ''}</td><td>${esc(r.unit)}</td><td>${r.order_by ? day(r.order_by) : '—'}</td><td><span class="pill ${tone(r.status)}">${esc(r.status)}</span></td><td>${esc(r.detail)}</td></tr>`;
+  }).join('');
+
+  const g = Object.fromEntries(by('glacier').map((r) => [r.key, r]));
+  set('glacier-note', `Assumes ${fmt(num(g.pints?.value))} pints by ${g.start?.value || 'Jan 27'} (placeholder: one pallet — set the real first PO in the tracker). At the full 100,000-pint scale that's ${fmt(num(g.full_batches?.value))} base batches — beyond what Steve runs today.`);
+  document.getElementById('glacier-kpis').innerHTML = [
+    ['Book production with Steve by', g.book_by?.value || '—'],
+    ['Base batches needed', fmt(num(g.batches?.value))],
+    ['Production cost', money(num(g.cost?.value))],
+  ].map(([l, v]) => `<div class="kpi"><span class="lbl">${l}</span><span class="val">${esc(v)}</span></div>`).join('');
+  document.getElementById('glacier').innerHTML = by('glacier_item').map((r) =>
+    `<tr><td>${esc(r.label)}</td><td class="n">${fmt(num(r.value))}</td><td>${esc(r.unit)}</td><td>${/^\d{4}/.test(r.order_by) ? day(r.order_by) : esc(r.order_by)}</td><td><span class="pill ${tone(r.status)}">${esc(r.status)}</span></td></tr>`).join('');
+
+  set('updated', `Tracker as of ${meta.as_of || '—'} · loaded ${new Date().toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`);
+}
+
+async function load() {
+  const btn = document.getElementById('refresh'); btn.disabled = true;
+  try {
+    const [head, ...body] = parseCsv(await fetchTab());
+    render(body.filter((r) => r.some((c) => c)).map((r) => Object.fromEntries(head.map((h, i) => [h, r[i] ?? '']))));
+  } catch (e) {
+    console.error(e);
+    set('updated', 'Couldn’t load the Public – Logistics tab — check it is included in File → Share → Publish to web.');
+  }
+  btn.disabled = false;
+}
+document.getElementById('refresh').addEventListener('click', load);
+load();
+setInterval(() => { if (!document.hidden) load(); }, CONFIG.refreshMinutes * 60000);
+</script>
+</body>
+</html>

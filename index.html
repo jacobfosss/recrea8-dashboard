@@ -75,11 +75,17 @@ body { padding: 24px 16px 48px; font-family: var(--font-anthropic-sans); }
 .r8 [data-dash-source-state=empty] { color: transparent; }
 .r8 [data-dash-source-state=refreshing] { opacity: .5; transition: opacity var(--cds-dur-slow); }
 </style>
+<style>
+.r8 .switch { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--color-border-line); border-radius: 999px; background: var(--color-panel); margin-bottom: var(--cds-gap-sm); }
+.r8 .switch a { padding: 4px 14px; border-radius: 999px; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); text-decoration: none; }
+.r8 .switch a[aria-current=page] { background: var(--color-fg); color: var(--color-bg); }
+</style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 </head>
 <body>
 <div class="r8">
   <header id="top">
+    <nav class="switch" aria-label="Dashboard"><a href="./" aria-current="page">Sales</a><a href="./logistics.html">Logistics</a></nav>
     <h1>Recrea8 retail dashboard</h1>
     <p class="take" id="takeaway"><span class="dash-skeleton">Loading the latest numbers…</span></p>
     <p class="meta"><span id="updated">Loading…</span> · <button id="refresh" type="button">Refresh</button></p>
