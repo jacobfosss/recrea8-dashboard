@@ -103,6 +103,12 @@ body { padding: 24px 16px 48px; font-family: var(--font-anthropic-sans); }
     <div class="kpi"><span class="lbl">Finished pints on hand</span><span class="val" id="k-fg">—</span><span class="sub" id="k-pace">—</span></div>
   </section>
 
+  <div class="card">
+    <h3>Wrap labels left by flavor</h3>
+    <p class="note">Last count minus pints shipped of that flavor since. Run-out at the last 8 weeks' pace for that flavor.</p>
+    <section class="kpis" id="labels"></section>
+  </div>
+
   <div class="grid">
     <div class="card">
       <h3>What to order this week</h3>
@@ -214,6 +220,9 @@ function render(rows) {
     const v = num(r.value);
     return `<tr><td>${esc(r.label)}</td><td class="n">${v == null ? '—' : fmt(Math.max(0, v), 1)}${v != null && v < 0 ? ' *' : ''}</td><td>${esc(r.unit)}</td><td>${r.order_by ? day(r.order_by) : '—'}</td><td><span class="pill ${tone(r.status)}">${esc(r.status)}</span></td><td>${esc(r.detail)}</td></tr>`;
   }).join('');
+
+  document.getElementById('labels').innerHTML = by('label_sku').map((r) =>
+    `<div class="kpi"><span class="lbl">${esc(r.label)}</span><span class="val">${fmt(num(r.value))}</span><span class="sub">${esc(r.status)}${r.order_by ? ' · runs out ~' + day(r.order_by) : ''}<br>${esc(r.detail)}</span></div>`).join('') || '<p class="empty">No label counts yet.</p>';
 
   const g = Object.fromEntries(by('glacier').map((r) => [r.key, r]));
   set('glacier-note', `Assumes ${fmt(num(g.pints?.value))} pints by ${g.start?.value || 'Jan 27'} (placeholder: one pallet — set the real first PO in the tracker). At the full 100,000-pint scale that's ${fmt(num(g.full_batches?.value))} base batches — beyond what Steve runs today.`);
